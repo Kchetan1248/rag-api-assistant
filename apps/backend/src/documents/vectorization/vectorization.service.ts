@@ -1,23 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { OllamaEmbeddings } from '@langchain/ollama';
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
 @Injectable()
 export class VectorizationService {
   private readonly logger = new Logger(VectorizationService.name);
-  private embeddings: OllamaEmbeddings;
+  private embeddings: GoogleGenerativeAIEmbeddings;
   private qdrantUrl: string;
   private qdrantClient: QdrantClient;
 
   constructor(private configService: ConfigService) {
     this.qdrantUrl = this.configService.get<string>('QDRANT_URL')!;
     
-    // Connect to local Ollama instance for FREE embedding generation (or remote if deployed)
-    this.embeddings = new OllamaEmbeddings({
-      model: "nomic-embed-text",
-      baseUrl: process.env.OLLAMA_URL || "http://localhost:11434",
+    // Connect to Google Gemini for FREE embedding generation (production ready)
+    this.embeddings = new GoogleGenerativeAIEmbeddings({
+      model: "text-embedding-004",
+      apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
     });
 
     this.qdrantClient = new QdrantClient({ url: this.qdrantUrl });
