@@ -31,7 +31,7 @@ export class ChatService {
       });
     } else if (geminiKey) {
       this.embeddings = new GoogleGenerativeAIEmbeddings({
-        model: 'text-embedding-004',
+        model: 'gemini-embedding-2',
         apiKey: geminiKey,
       });
     } else {

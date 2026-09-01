@@ -27,7 +27,7 @@ export class VectorizationService {
     } else if (geminiKey) {
       this.logger.log('Using Google Gemini Embeddings');
       this.embeddings = new GoogleGenerativeAIEmbeddings({
-        model: "text-embedding-004",
+        model: "gemini-embedding-2",
         apiKey: geminiKey,
       });
     } else {
