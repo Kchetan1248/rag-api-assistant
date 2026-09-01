@@ -1,12 +1,58 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { PrismaService } from './prisma/prisma.service';
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { ConfigService } from '@nestjs/config';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService
+  ) {}
 
   @Get()
   getHello(): string {
-    return this.appService.getHello();
+    return 'Backend is running!';
+  }
+
+  @Get('health')
+  async getHealth() {
+    const health = {
+      status: 'ok',
+      postgres: 'checking...',
+      qdrant: 'checking...',
+      geminiKey: 'checking...',
+      qdrantUrl: this.configService.get<string>('QDRANT_URL') || 'missing',
+    };
+
+    // 1. Check Postgres
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      health.postgres = 'connected';
+    } catch (e) {
+      health.postgres = `failed: ${e.message}`;
+      health.status = 'error';
+    }
+
+    // 2. Check Qdrant
+    try {
+      const qdrantClient = new QdrantClient({ url: health.qdrantUrl });
+      const collections = await qdrantClient.getCollections();
+      health.qdrant = `connected (${collections.collections.length} collections)`;
+    } catch (e) {
+      health.qdrant = `failed: ${e.message}`;
+      health.status = 'error';
+    }
+
+    // 3. Check Gemini Key
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (geminiKey) {
+      health.geminiKey = `present (starts with ${geminiKey.substring(0, 4)}...)`;
+    } else {
+      health.geminiKey = 'MISSING';
+      health.status = 'error';
+    }
+
+    return health;
   }
 }
