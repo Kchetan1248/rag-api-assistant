@@ -43,7 +43,11 @@ export class DocumentsController {
     }
     
     // Pass the saved file details to the service for further processing
-    return this.documentsService.processUploadedFile(file);
+    try {
+      return await this.documentsService.processUploadedFile(file);
+    } catch (e) {
+      throw new BadRequestException(e.message || 'Unknown error');
+    }
   }
 
   @Get()
