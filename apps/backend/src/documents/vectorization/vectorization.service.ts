@@ -1,24 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
 @Injectable()
 export class VectorizationService {
   private readonly logger = new Logger(VectorizationService.name);
-  private embeddings: OpenAIEmbeddings;
+  private embeddings: OpenAIEmbeddings | GoogleGenerativeAIEmbeddings;
   private qdrantUrl: string;
   private qdrantClient: QdrantClient;
 
   constructor(private configService: ConfigService) {
     this.qdrantUrl = this.configService.get<string>('QDRANT_URL')!;
     
-    // Connect to OpenAI for embedding generation
-    this.embeddings = new OpenAIEmbeddings({
-      modelName: "text-embedding-3-small", // High performance, cheap OpenAI embedding model
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+    if (openaiKey) {
+      this.logger.log('Using OpenAI Embeddings');
+      this.embeddings = new OpenAIEmbeddings({
+        modelName: "text-embedding-3-small",
+        openAIApiKey: openaiKey,
+      });
+    } else if (geminiKey) {
+      this.logger.log('Using Google Gemini Embeddings');
+      this.embeddings = new GoogleGenerativeAIEmbeddings({
+        model: "text-embedding-004",
+        apiKey: geminiKey,
+      });
+    } else {
+      throw new Error('No embedding API key provided. Please set OPENAI_API_KEY or GEMINI_API_KEY.');
+    }
 
     this.qdrantClient = new QdrantClient({ url: this.qdrantUrl });
   }

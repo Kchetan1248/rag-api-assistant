@@ -21,6 +21,7 @@ export class AppController {
       status: 'ok',
       postgres: 'checking...',
       qdrant: 'checking...',
+      geminiKey: 'checking...',
       openAiKey: 'checking...',
       qdrantUrl: this.configService.get<string>('QDRANT_URL') || 'missing',
     };
@@ -44,12 +45,23 @@ export class AppController {
       health.status = 'error';
     }
 
-    // 3. Check OpenAI Key
+    // 3. Check Keys
     const openAiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
     if (openAiKey) {
       health.openAiKey = `present (starts with ${openAiKey.substring(0, 4)}...)`;
     } else {
       health.openAiKey = 'MISSING';
+    }
+
+    if (geminiKey) {
+      health.geminiKey = `present (starts with ${geminiKey.substring(0, 4)}...)`;
+    } else {
+      health.geminiKey = 'MISSING';
+    }
+
+    if (!openAiKey && !geminiKey) {
       health.status = 'error';
     }
 

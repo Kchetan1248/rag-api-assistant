@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
+import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -8,7 +9,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private embeddings: OpenAIEmbeddings;
+  private embeddings: OpenAIEmbeddings | GoogleGenerativeAIEmbeddings;
   private llm: ChatOpenAI;
   private qdrantUrl: string;
 
@@ -20,10 +21,22 @@ export class ChatService {
     
     // We use the EXACT same embedding model as the ingestion phase.
     // The query must be translated using the same mathematical vocabulary as the documents.
-    this.embeddings = new OpenAIEmbeddings({
-      modelName: 'text-embedding-3-small',
-      openAIApiKey: process.env.OPENAI_API_KEY,
-    });
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
+    if (openaiKey) {
+      this.embeddings = new OpenAIEmbeddings({
+        modelName: 'text-embedding-3-small',
+        openAIApiKey: openaiKey,
+      });
+    } else if (geminiKey) {
+      this.embeddings = new GoogleGenerativeAIEmbeddings({
+        model: 'text-embedding-004',
+        apiKey: geminiKey,
+      });
+    } else {
+      throw new Error('No embedding API key provided.');
+    }
 
     // Configure the specific language model we want to use for generating the final response.
     // We are using Sarvam AI's API via OpenAI-compatible endpoints!
