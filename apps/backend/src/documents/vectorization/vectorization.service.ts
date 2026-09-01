@@ -1,23 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { OpenAIEmbeddings } from '@langchain/openai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
 @Injectable()
 export class VectorizationService {
   private readonly logger = new Logger(VectorizationService.name);
-  private embeddings: GoogleGenerativeAIEmbeddings;
+  private embeddings: OpenAIEmbeddings;
   private qdrantUrl: string;
   private qdrantClient: QdrantClient;
 
   constructor(private configService: ConfigService) {
     this.qdrantUrl = this.configService.get<string>('QDRANT_URL')!;
     
-    // Connect to Google Gemini for FREE embedding generation (production ready)
-    this.embeddings = new GoogleGenerativeAIEmbeddings({
-      model: "text-embedding-004",
-      apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+    // Connect to OpenAI for embedding generation
+    this.embeddings = new OpenAIEmbeddings({
+      modelName: "text-embedding-3-small", // High performance, cheap OpenAI embedding model
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
     this.qdrantClient = new QdrantClient({ url: this.qdrantUrl });

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { ConversationsService } from '../conversations/conversations.service';
@@ -9,7 +8,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private embeddings: GoogleGenerativeAIEmbeddings;
+  private embeddings: OpenAIEmbeddings;
   private llm: ChatOpenAI;
   private qdrantUrl: string;
 
@@ -21,9 +20,9 @@ export class ChatService {
     
     // We use the EXACT same embedding model as the ingestion phase.
     // The query must be translated using the same mathematical vocabulary as the documents.
-    this.embeddings = new GoogleGenerativeAIEmbeddings({
-      model: 'text-embedding-004',
-      apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
+    this.embeddings = new OpenAIEmbeddings({
+      modelName: 'text-embedding-3-small',
+      openAIApiKey: process.env.OPENAI_API_KEY,
     });
 
     // Configure the specific language model we want to use for generating the final response.
