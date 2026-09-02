@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { ConversationsService } from './conversations.service';
 
 @Controller('conversations')
@@ -18,5 +18,10 @@ export class ConversationsController {
   @Get(':id')
   async getConversation(@Param('id') id: string) {
     return this.conversationsService.getConversationWithMessages(id);
+  }
+
+  @Delete(':id')
+  async deleteConversation(@Param('id') id: string) {
+    return this.conversationsService.deleteConversation(id);
   }
 }

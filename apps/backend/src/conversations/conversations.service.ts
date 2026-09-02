@@ -39,4 +39,10 @@ export class ConversationsService {
       },
     });
   }
+
+  async deleteConversation(id: string) {
+    return this.prisma.conversation.delete({
+      where: { id },
+    });
+  }
 }

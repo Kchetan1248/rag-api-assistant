@@ -288,6 +288,22 @@ export default function AppDashboard() {
     }
   };
 
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`${getApiBase()}/conversations/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success("Conversation deleted");
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (activeConversationId === id) {
+        startNewChat();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete conversation");
+    }
+  };
+
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim() || isSearching) return;
@@ -526,21 +542,29 @@ export default function AppDashboard() {
             ) : (
               <div className="space-y-0.5">
                 {conversations.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => loadConversation(c.id)}
-                    className={cn(
-                      "w-full rounded-2xl px-2.5 py-2 text-left transition-colors",
-                      activeConversationId === c.id
-                        ? "bg-white/90 shadow-sm dark:bg-white/10"
-                        : "hover:bg-white/50 dark:hover:bg-white/[0.04]"
-                    )}
-                  >
-                    <span className="block truncate text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
-                      {c.title}
-                    </span>
-                    <span className="text-[11px] text-neutral-400">{relativeTime(c.createdAt)}</span>
-                  </button>
+                  <div key={c.id} className="group relative">
+                    <button
+                      onClick={() => loadConversation(c.id)}
+                      className={cn(
+                        "w-full rounded-2xl px-2.5 py-2 pr-10 text-left transition-colors",
+                        activeConversationId === c.id
+                          ? "bg-white/90 shadow-sm dark:bg-white/10"
+                          : "hover:bg-white/50 dark:hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <span className="block truncate text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
+                        {c.title}
+                      </span>
+                      <span className="text-[11px] text-neutral-400">{relativeTime(c.createdAt)}</span>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteConversation(e, c.id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
+                      title="Delete conversation"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
