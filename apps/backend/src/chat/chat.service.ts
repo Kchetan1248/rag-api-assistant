@@ -74,7 +74,7 @@ export class ChatService {
         filter = {
           must: [
             {
-              key: 'documentId',
+              key: 'metadata.documentId',
               match: {
                 any: documentIds
               }
@@ -118,7 +118,6 @@ export class ChatService {
       You are an expert Enterprise API Support Engineer.
       Use the following context from our API documentation to answer the user's question accurately.
       If the answer is not contained in the context, say "I don't have enough information in the documentation to answer this." Do not make up information.
-      Format your output using Markdown lists or tables where appropriate to improve readability.
       
       CONTEXT:
       {context}
@@ -169,7 +168,6 @@ export class ChatService {
     const promptTemplate = PromptTemplate.fromTemplate(`
       You are an expert Enterprise API Support Engineer.
       Use the following context to answer the user's question.
-      Format your output using Markdown lists or tables where appropriate to improve readability.
       
       CONTEXT:
       {context}

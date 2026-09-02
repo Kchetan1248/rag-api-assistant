@@ -78,7 +78,7 @@ export class VectorizationService {
         filter: {
           must: [
             {
-              key: 'documentId',
+              key: 'metadata.documentId',
               match: {
                 value: documentId,
               },
