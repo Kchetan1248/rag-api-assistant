@@ -358,17 +358,23 @@ export default function AppDashboard() {
         headers: { "Content-Type": "application/json" },
         onmessage(event) {
           if (event.data) {
-            const data = event.data;
-            if (data.startsWith("[SOURCES]") && data.endsWith("[/SOURCES]")) {
-              const jsonStr = data.replace("[SOURCES]", "").replace("[/SOURCES]", "");
-              const parsed = JSON.parse(jsonStr);
-              extractedSources = parsed.sources || [];
+            let chunkText = event.data;
+            try {
+              const parsed = JSON.parse(event.data);
+              if (parsed.text !== undefined) chunkText = parsed.text;
+            } catch (e) {}
+
+            if (chunkText.startsWith("[SOURCES]") && chunkText.endsWith("[/SOURCES]")) {
+              const jsonStr = chunkText.replace("[SOURCES]", "").replace("[/SOURCES]", "");
+              const parsedSources = JSON.parse(jsonStr);
+              extractedSources = parsedSources.sources || [];
               setMessages((prev) =>
                 prev.map((msg) => (msg.id === aiMessageId ? { ...msg, sources: extractedSources } : msg))
               );
               return;
             }
-            fullContent += data;
+            
+            fullContent += chunkText;
             setMessages((prev) =>
               prev.map((msg) => (msg.id === aiMessageId ? { ...msg, content: fullContent } : msg))
             );

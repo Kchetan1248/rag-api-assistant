@@ -30,8 +30,8 @@ export class ChatController {
         try {
           const stream = this.chatService.streamAnswer(query, conversationId, documentIds);
           for await (const chunk of stream) {
-            // SSE standard requires the payload to be under a 'data' key
-            subscriber.next({ data: chunk });
+            // Wrap in JSON to safely transmit newlines over SSE
+            subscriber.next({ data: JSON.stringify({ text: chunk }) } as any);
           }
           subscriber.complete();
         } catch (error) {
