@@ -33,7 +33,8 @@ import {
   BrainCircuit,
   LayoutDashboard,
   ArrowRight,
-  DatabaseZap
+  DatabaseZap,
+  ChevronDown
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -143,6 +144,8 @@ export default function AppDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [isRecentChatsExpanded, setIsRecentChatsExpanded] = useState(true);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -532,42 +535,62 @@ export default function AppDashboard() {
           </nav>
 
           <div className="mt-5">
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
-              Recent
-            </p>
-            {conversations.length === 0 ? (
-              <p className="px-2 py-3 text-xs leading-relaxed text-neutral-400">
-                Conversations you start will appear here.
-              </p>
-            ) : (
-              <div className="space-y-0.5">
-                {conversations.map((c) => (
-                  <div key={c.id} className="group relative">
-                    <button
-                      onClick={() => loadConversation(c.id)}
-                      className={cn(
-                        "w-full rounded-2xl px-2.5 py-2 pr-10 text-left transition-colors",
-                        activeConversationId === c.id
-                          ? "bg-white/90 shadow-sm dark:bg-white/10"
-                          : "hover:bg-white/50 dark:hover:bg-white/[0.04]"
-                      )}
-                    >
-                      <span className="block truncate text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
-                        {c.title}
-                      </span>
-                      <span className="text-[11px] text-neutral-400">{relativeTime(c.createdAt)}</span>
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteConversation(e, c.id)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <button
+              onClick={() => setIsRecentChatsExpanded(!isRecentChatsExpanded)}
+              className="mb-2 flex w-full items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+            >
+              <span>Recent</span>
+              <motion.div
+                animate={{ rotate: isRecentChatsExpanded ? 0 : -90 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="size-3.5" />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {isRecentChatsExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  {conversations.length === 0 ? (
+                    <p className="px-2 py-3 text-xs leading-relaxed text-neutral-400">
+                      Conversations you start will appear here.
+                    </p>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {conversations.map((c) => (
+                        <div key={c.id} className="group relative">
+                          <button
+                            onClick={() => loadConversation(c.id)}
+                            className={cn(
+                              "w-full rounded-2xl px-2.5 py-2 pr-10 text-left transition-colors",
+                              activeConversationId === c.id
+                                ? "bg-white/90 shadow-sm dark:bg-white/10"
+                                : "hover:bg-white/50 dark:hover:bg-white/[0.04]"
+                            )}
+                          >
+                            <span className="block truncate text-[13px] font-medium text-neutral-800 dark:text-neutral-200">
+                              {c.title}
+                            </span>
+                            <span className="text-[11px] text-neutral-400">{relativeTime(c.createdAt)}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteConversation(e, c.id)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"
+                            title="Delete conversation"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
