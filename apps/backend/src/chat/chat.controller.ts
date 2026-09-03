@@ -9,7 +9,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post('search')
-  async search(@Request() req, @Body('query') query: string) {
+  async search(@Request() req: any, @Body('query') query: string) {
     if (!query) throw new BadRequestException('A search query is required.');
     
     // Returns the raw vector search results (an array of chunks) for the Vector Explorer tab
@@ -19,7 +19,7 @@ export class ChatController {
 
   @Sse('stream')
   streamSearch(
-    @Request() req,
+    @Request() req: any,
     @Query('query') query: string,
     @Query('conversationId') conversationId?: string,
     @Query('documentIds') documentIdsParam?: string

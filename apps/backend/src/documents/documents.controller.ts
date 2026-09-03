@@ -40,7 +40,7 @@ export class DocumentsController {
       },
     }),
   )
-  async uploadFile(@Request() req, @UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@Request() req: any, @UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
@@ -53,12 +53,12 @@ export class DocumentsController {
   }
 
   @Get()
-  async getDocuments(@Request() req) {
+  async getDocuments(@Request() req: any) {
     return this.documentsService.getDocuments(req.user.userId);
   }
 
   @Delete(':id')
-  async deleteDocument(@Request() req, @Param('id') id: string) {
+  async deleteDocument(@Request() req: any, @Param('id') id: string) {
     return this.documentsService.deleteDocument(id, req.user.userId);
   }
 }

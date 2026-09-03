@@ -8,22 +8,22 @@ export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 
   @Get()
-  async getConversations(@Request() req) {
+  async getConversations(@Request() req: any) {
     return this.conversationsService.getConversations(req.user.userId);
   }
 
   @Post()
-  async createConversation(@Request() req, @Body('title') title?: string) {
+  async createConversation(@Request() req: any, @Body('title') title?: string) {
     return this.conversationsService.createConversation(title, req.user.userId);
   }
 
   @Get(':id')
-  async getConversation(@Request() req, @Param('id') id: string) {
+  async getConversation(@Request() req: any, @Param('id') id: string) {
     return this.conversationsService.getConversationWithMessages(id, req.user.userId);
   }
 
   @Delete(':id')
-  async deleteConversation(@Request() req, @Param('id') id: string) {
+  async deleteConversation(@Request() req: any, @Param('id') id: string) {
     return this.conversationsService.deleteConversation(id, req.user.userId);
   }
 }
