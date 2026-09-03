@@ -149,6 +149,8 @@ export default function AppDashboard() {
   const [isSearching, setIsSearching] = useState(false);
 
   const [isRecentChatsExpanded, setIsRecentChatsExpanded] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -201,9 +203,17 @@ export default function AppDashboard() {
   useEffect(() => {
     setMounted(true);
     
-    if (!getAuthToken()) {
+    const token = getAuthToken();
+    if (!token) {
       router.push("/login");
       return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      setUserEmail(payload.email || "");
+    } catch (e) {
+      console.error("Invalid token");
     }
 
     fetchWithAuth(`${getApiBase()}/conversations`)
@@ -625,29 +635,63 @@ export default function AppDashboard() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1 border-t border-black/[0.04] p-3 dark:border-white/[0.06]">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
-            >
-              {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-              {theme === "dark" ? "Light" : "Dark"}
-            </button>
-            <button
-              onClick={() => setHelpOpen(true)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
-            >
-              <HelpCircle className="size-3.5" />
-              Help
-            </button>
-          </div>
+        <div className="relative p-3 border-t border-black/[0.04] dark:border-white/[0.06]">
+          <AnimatePresence>
+            {isProfileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute bottom-full left-3 right-3 mb-2 p-1.5 rounded-2xl bg-white dark:bg-neutral-900 border border-black/5 dark:border-white/10 shadow-xl overflow-hidden z-50 flex flex-col gap-1"
+              >
+                <button
+                  onClick={() => {
+                    setTheme(theme === "dark" ? "light" : "dark");
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-white/5 transition-colors"
+                >
+                  {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                </button>
+                <button
+                  onClick={() => {
+                    setHelpOpen(true);
+                    setIsProfileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-white/5 transition-colors"
+                >
+                  <HelpCircle className="size-4" />
+                  Help & Support
+                </button>
+                <div className="h-px w-full bg-neutral-200 dark:bg-white/10 my-0.5" />
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut className="size-4" />
+                  Sign out
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <button
-            onClick={logout}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            className="flex w-full items-center gap-3 rounded-2xl p-2 text-left hover:bg-neutral-100 dark:hover:bg-white/5 transition-colors"
           >
-            <LogOut className="size-3.5" />
-            Logout
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white font-bold shadow-md">
+              {userEmail ? userEmail.charAt(0).toUpperCase() : <User className="size-4" />}
+            </div>
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <span className="truncate text-sm font-medium text-neutral-900 dark:text-white">
+                {userEmail ? userEmail.split("@")[0] : "User"}
+              </span>
+              <span className="truncate text-xs text-neutral-500 dark:text-neutral-400">
+                {userEmail || "Loading..."}
+              </span>
+            </div>
+            <ChevronDown className={cn("size-4 text-neutral-400 shrink-0 transition-transform", isProfileMenuOpen && "rotate-180")} />
           </button>
         </div>
       </aside>
