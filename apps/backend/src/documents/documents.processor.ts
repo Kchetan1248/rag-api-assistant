@@ -15,7 +15,7 @@ export class DocumentsProcessor {
     private readonly prisma: PrismaService,
   ) {}
 
-  async process(fileDetails: any): Promise<any> {
+  async process(fileDetails: any, userId: string): Promise<any> {
     this.logger.log(`Starting synchronous processing for document ${fileDetails.originalName}`);
     
     const document = await this.prisma.document.create({
@@ -24,6 +24,7 @@ export class DocumentsProcessor {
         content: '',
         type: fileDetails.originalName.split('.').pop().toUpperCase() || 'UNKNOWN',
         isIndexed: false,
+        userId,
       }
     });
 
@@ -38,7 +39,7 @@ export class DocumentsProcessor {
 
     // 3. Convert chunks into vectors using Ollama and store them in Qdrant
     // We use the Prisma document ID as the Qdrant documentId
-    await this.vectorizationService.storeChunks(chunks, document.id);
+    await this.vectorizationService.storeChunks(chunks, document.id, userId);
 
     // Update document status
     await this.prisma.document.update({

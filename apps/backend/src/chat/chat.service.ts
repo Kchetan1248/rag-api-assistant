@@ -56,7 +56,7 @@ export class ChatService {
   /**
    * Performs a Semantic Similarity Search against Qdrant
    */
-  async semanticSearch(query: string, documentIds?: string[]) {
+  async semanticSearch(query: string, userId: string, documentIds?: string[]) {
     this.logger.log(`Performing semantic search for: "${query}"${documentIds ? ` [Filtered by ${documentIds.length} docs]` : ''}`);
 
     try {
@@ -69,19 +69,23 @@ export class ChatService {
         }
       );
 
-      let filter = undefined;
+      const filterMust: any[] = [
+        {
+          key: 'metadata.userId',
+          match: { value: userId }
+        }
+      ];
+
       if (documentIds && documentIds.length > 0) {
-        filter = {
-          must: [
-            {
-              key: 'metadata.documentId',
-              match: {
-                any: documentIds
-              }
-            }
-          ]
-        };
+        filterMust.push({
+          key: 'metadata.documentId',
+          match: {
+            any: documentIds
+          }
+        });
       }
+
+      const filter = { must: filterMust };
 
       // Search for the top 3 most similar chunks of text
       const searchResults = await vectorStore.similaritySearch(query, 3, filter);
@@ -102,9 +106,9 @@ export class ChatService {
   /**
    * Complete RAG Pipeline: Retrieves documents AND generates an answer
    */
-  async generateAnswer(query: string, documentIds?: string[]) {
+  async generateAnswer(query: string, userId: string, documentIds?: string[]) {
     // 1. Retrieve the context (The 'R' in RAG)
-    const contextDocs = await this.semanticSearch(query, documentIds);
+    const contextDocs = await this.semanticSearch(query, userId, documentIds);
     
     if (contextDocs.length === 0) {
       return { answer: "I'm sorry, I couldn't find any documentation related to your question.", sources: [] };
@@ -147,8 +151,8 @@ export class ChatService {
   /**
    * Streams the answer back token-by-token for a ChatGPT-like experience
    */
-  async *streamAnswer(query: string, conversationId?: string, documentIds?: string[]): AsyncGenerator<string, void, unknown> {
-    const contextDocs = await this.semanticSearch(query, documentIds);
+  async *streamAnswer(query: string, userId: string, conversationId?: string, documentIds?: string[]): AsyncGenerator<string, void, unknown> {
+    const contextDocs = await this.semanticSearch(query, userId, documentIds);
     
     if (contextDocs.length === 0) {
       yield "I'm sorry, I couldn't find any documentation related to your question.";
@@ -159,7 +163,7 @@ export class ChatService {
 
     let historyString = "No previous history.";
     if (conversationId) {
-      const convo = await this.conversationsService.getConversationWithMessages(conversationId);
+      const convo = await this.conversationsService.getConversationWithMessages(conversationId, userId);
       if (convo && convo.messages.length > 0) {
         historyString = convo.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
       }

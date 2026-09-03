@@ -3,20 +3,22 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DocumentsModule } from './documents/documents.module';
-import { ChatModule } from './chat/chat.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ChatModule } from './chat/chat.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Makes ConfigModule available anywhere without importing it again
-      envFilePath: '.env', // Path to the env file
+      isGlobal: true,
+      envFilePath: '.env',
     }),
     DocumentsModule,
     ChatModule,
     PrismaModule,
     ConversationsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,7 +13,7 @@ export class DocumentsService {
     private readonly vectorizationService: VectorizationService,
   ) {}
 
-  async processUploadedFile(file: Express.Multer.File) {
+  async processUploadedFile(file: Express.Multer.File, userId: string) {
     const fileDetails = {
       originalName: file.originalname,
       mimeType: file.mimetype,
@@ -22,7 +22,7 @@ export class DocumentsService {
     };
 
     // Process the document synchronously
-    const result = await this.documentsProcessor.process(fileDetails);
+    const result = await this.documentsProcessor.process(fileDetails, userId);
 
     this.logger.log(`Processed file ${fileDetails.originalName} synchronously`);
 
@@ -34,19 +34,20 @@ export class DocumentsService {
     };
   }
 
-  async getDocuments() {
+  async getDocuments(userId: string) {
     return this.prisma.document.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async deleteDocument(id: string) {
+  async deleteDocument(id: string, userId: string) {
     // 1. Delete vectors from Qdrant
     await this.vectorizationService.deleteDocumentVectors(id);
     
     // 2. Delete from PostgreSQL
     await this.prisma.document.delete({
-      where: { id },
+      where: { id, userId },
     });
 
     this.logger.log(`Deleted document ${id} successfully`);

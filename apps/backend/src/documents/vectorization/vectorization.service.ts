@@ -40,12 +40,13 @@ export class VectorizationService {
   /**
    * Converts text chunks to vectors and stores them in Qdrant
    */
-  async storeChunks(chunks: string[], documentId: string): Promise<void> {
+  async storeChunks(chunks: string[], documentId: string, userId: string): Promise<void> {
     this.logger.log(`Generating embeddings for ${chunks.length} chunks...`);
 
     // Prepare metadata so we know which chunk belongs to which document
     const metadatas = chunks.map((_, index) => ({
       documentId,
+      userId,
       chunkIndex: index,
     }));
 

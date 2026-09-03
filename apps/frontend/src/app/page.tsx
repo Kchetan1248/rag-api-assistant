@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent, type DragEvent } from "react";
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { useRouter } from "next/navigation";
 import {
   Bot,
   User,
@@ -34,13 +35,15 @@ import {
   LayoutDashboard,
   ArrowRight,
   DatabaseZap,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
+import { getAuthToken, logout, API_BASE_URL } from "@/lib/auth";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -161,9 +164,28 @@ export default function AppDashboard() {
     setIsMobileMenuOpen(false);
   };
 
+  const router = useRouter();
+
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+    const token = getAuthToken();
+    if (!token) {
+      router.push("/login");
+      throw new Error("No auth token");
+    }
+    const headers = {
+      ...options.headers,
+      Authorization: `Bearer ${token}`,
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      logout();
+    }
+    return res;
+  };
+
   const fetchDocuments = async () => {
     try {
-      const res = await fetch(`${getApiBase()}/documents`);
+      const res = await fetchWithAuth(`${getApiBase()}/documents`);
       if (!res.ok) {
         setDocuments([]);
         return;
@@ -178,13 +200,19 @@ export default function AppDashboard() {
 
   useEffect(() => {
     setMounted(true);
-    fetch(`${getApiBase()}/conversations`)
+    
+    if (!getAuthToken()) {
+      router.push("/login");
+      return;
+    }
+
+    fetchWithAuth(`${getApiBase()}/conversations`)
       .then((res) => res.json())
       .then((data) => setConversations(Array.isArray(data) ? data : []))
       .catch(console.error);
 
     fetchDocuments();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (activeTab === "chat" && scrollRef.current) {
@@ -230,7 +258,7 @@ export default function AppDashboard() {
     goToTab("chat");
     setIsChatLoading(true);
     try {
-      const res = await fetch(`${getApiBase()}/conversations/${id}`);
+      const res = await fetchWithAuth(`${getApiBase()}/conversations/${id}`);
       if (!res.ok) return;
       const data = await res.json();
       if (data && data.messages) {
@@ -258,7 +286,7 @@ export default function AppDashboard() {
     formData.append("file", file);
 
     try {
-      const res = await fetch(`${getApiBase()}/documents/upload`, {
+      const res = await fetchWithAuth(`${getApiBase()}/documents/upload`, {
         method: "POST",
         body: formData,
       });
@@ -280,7 +308,7 @@ export default function AppDashboard() {
 
   const handleDeleteDocument = async (id: string) => {
     try {
-      const res = await fetch(`${getApiBase()}/documents/${id}`, { method: "DELETE" });
+      const res = await fetchWithAuth(`${getApiBase()}/documents/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       toast.success("Document deleted", { description: "Vectors removed from Qdrant." });
       setSelectedDocumentIds((prev) => prev.filter((docId) => docId !== id));
@@ -294,7 +322,7 @@ export default function AppDashboard() {
   const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`${getApiBase()}/conversations/${id}`, { method: "DELETE" });
+      const res = await fetchWithAuth(`${getApiBase()}/conversations/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       toast.success("Conversation deleted");
       setConversations((prev) => prev.filter((c) => c.id !== id));
@@ -314,7 +342,7 @@ export default function AppDashboard() {
     setIsSearching(true);
     setSearchResults([]);
     try {
-      const res = await fetch(`${getApiBase()}/chat/search`, {
+      const res = await fetchWithAuth(`${getApiBase()}/chat/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: searchQuery }),
@@ -352,7 +380,7 @@ export default function AppDashboard() {
       let currentConversationId = activeConversationId;
 
       if (!currentConversationId) {
-        const res = await fetch(`${getApiBase()}/conversations`, {
+        const res = await fetchWithAuth(`${getApiBase()}/conversations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title: input.length > 30 ? input.slice(0, 30) + "..." : input }),
@@ -374,7 +402,10 @@ export default function AppDashboard() {
 
       await fetchEventSource(`${getApiBase()}/chat/stream?${searchParams.toString()}`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          "Content-Type": "application/json",
+        },
         onmessage(event) {
           if (event.data) {
             let chunkText = event.data;
@@ -594,20 +625,29 @@ export default function AppDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 border-t border-black/[0.04] p-3 dark:border-white/[0.06]">
+        <div className="flex flex-col gap-1 border-t border-black/[0.04] p-3 dark:border-white/[0.06]">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
+            >
+              {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+              {theme === "dark" ? "Light" : "Dark"}
+            </button>
+            <button
+              onClick={() => setHelpOpen(true)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
+            >
+              <HelpCircle className="size-3.5" />
+              Help
+            </button>
+          </div>
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
+            onClick={logout}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
           >
-            {theme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-            {theme === "dark" ? "Light" : "Dark"}
-          </button>
-          <button
-            onClick={() => setHelpOpen(true)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-2xl px-2 py-2 text-xs font-medium text-neutral-500 hover:bg-white/70 dark:hover:bg-white/5"
-          >
-            <HelpCircle className="size-3.5" />
-            Help
+            <LogOut className="size-3.5" />
+            Logout
           </button>
         </div>
       </aside>

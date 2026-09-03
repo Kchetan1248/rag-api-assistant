@@ -7,13 +7,17 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as os from 'os';
 import { DocumentsService } from './documents.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
@@ -29,34 +33,32 @@ export class DocumentsController {
         },
       }),
       fileFilter: (req, file, cb) => {
-        // Accept only specific API document formats
-        if (!file.originalname.match(/\.(json|yaml|yml|md|pdf)$/)) {
-          return cb(new BadRequestException('Only API documentation files are allowed!'), false);
+        if (!file.originalname.match(/\.(json|yaml|yml|md|pdf|csv|txt)$/i)) {
+          return cb(new BadRequestException('Only documents are allowed!'), false);
         }
         cb(null, true);
       },
     }),
   )
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@Request() req, @UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('File is required');
     }
     
-    // Pass the saved file details to the service for further processing
     try {
-      return await this.documentsService.processUploadedFile(file);
+      return await this.documentsService.processUploadedFile(file, req.user.userId);
     } catch (e) {
       throw new BadRequestException(e.message || 'Unknown error');
     }
   }
 
   @Get()
-  async getDocuments() {
-    return this.documentsService.getDocuments();
+  async getDocuments(@Request() req) {
+    return this.documentsService.getDocuments(req.user.userId);
   }
 
   @Delete(':id')
-  async deleteDocument(@Param('id') id: string) {
-    return this.documentsService.deleteDocument(id);
+  async deleteDocument(@Request() req, @Param('id') id: string) {
+    return this.documentsService.deleteDocument(id, req.user.userId);
   }
 }
